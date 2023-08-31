@@ -1,6 +1,4 @@
-//#define PORTA *((volatile unsigned char*) 0x3B)
-//#define DDRA *((volatile unsigned char*) 0x3A)
-//#define PA7 7
+
 #ifndef __AVRIO__
 #define __AVRIO__
 #include <avr/io.h>
@@ -10,37 +8,175 @@
 #include "random.h"
 #endif
 
-void delay(volatile long time) {
-    while (time > 0) {
-        time--;
-    }
+#define MAXLEN 25
+
+
+//returns the value of the buttons (In PORTB, left justified)
+uint8_t readButton () {
+	uint8_t buttons = (PINB & 0b01111000) << 1;
+    buttons = ~buttons;
+    buttons = buttons & 0xF0;
+	return buttons;
 }
 
-int main() {
+void delay(volatile long time) {
+	while (time > 0) {
+		time--;
+	}
+}
+
+void ADC_init() {
+    //Sets the refernce voltage to AVCC
+    ADMUX |= (1 << REFS0);
+
+    //Enable ADC and set prescaler to 128
+    ADCSRA |= (1 << ADEN) |
+                (1 << ADPS2) |
+                (1 << ADPS1) | 
+                (1 << ADPS0);
+}
+
+// Function to read analog value from ADC
+uint16_t ADC_read(uint8_t channel) {
+    // Clear the channel selection bits
+    ADMUX &= 0xF0;
+    // Set the channel selection bits based on the given channel
+    ADMUX |= (channel & 0x0F);
+    
+    // Start ADC conversion
+    ADCSRA |= (1 << ADSC);
+    
+    // Wait until the conversion is complete
+    while (ADCSRA & (1 << ADSC));
+    
+    // Return the ADC value
+    return ADC;
+}
+
+int setup() {
+
+/*
+    This setup function will perform the following tasks:
+
+
+    [Setup IO ports]
+    Set the LED pins as pinout (PA7-PA4)
+    Set the pushbutton pins as input (PB6-PB3)
+    Set the seed for our RNG as input (PB1)
+
+    [Initialize the ADC]
+    Set the proper registers for ADC to function properly
+    Seed the RNG function with something form the ADC
+
+    [Power On Self Test (POST)]
+    Turn on all LEDs for 1 second, then off
+
+*/
+
+
     //Set LED pins as output
-    DDRA = (1 << PA7 | 1 << PA6 | 1 << PA5 | 1 << PA4);
+    DDRA = (1 << PA7)|(1 << PA6)| (1 << PA5)| (1 << PA4);
+
+    //Set the Pushbutton Pins as Input
+    DDRB &= ~((1 << PB6) | (1 << PB5) | (1 << PB4) | (1 << PB3));
+
+    //Sets PA1 as input
+    DDRA &= ~(1 << PA1);
+
+    //Set all LEDs as high
+    PORTA = (1 << PA7) | (1 << PA6) |  (1 << PA5) | (1 << PA4);
+
     //Set analog read in (To seed the random function) as input
     DDRA &= ~(1 << PA1);
 
-    //Two options: 
-    //1. Measure the ADC, use that to seed
-    //2. Time when the human interacts with the first button: use the lower levels of the timer
+    ADC_init();
+    random_init(ADC_read(1));
 
-    PORTA = (1<<PA7 | 1 << PA6 | 1 << PA5 | 1 << PA4);
+	PORTA = 0xF0;
+	delay(100000);
+	PORTA = 0x00;
 
-    random_init(0xabcd);
+    
+}
 
-    while (1) {
-        //Turns all LEDs off
-        PORTA = 0x00;
-        delay(100000);
-        //Allocates space in memory for this 8 bit variable
-        //This will store our random number
-        uint8_t randomValue = random() % 4;
-        //Turns on one of the LEDs at random
-        PORTA = (0b000010000 << randomValue);
-        //delay(10000*randomValue);
-        //PORTA = 0xFF;
-        delay(100000);
+/*
+    Outputs the sequence up until the currentIndex to the LEDs using a read mod write method
+*/
+
+void playSequence(int currentIndex, uint8_t sequence [ MAXLEN ]) {
+    for (int i = 0; i < currentIndex; i++) {
+        uint8_t currentA = PORTA;
+        currentA &= 0b00001111;
+        currentA |= 0b00010000 << sequence[i];
+        PORTA = currentA;
+        delay(10000);
     }
 }
+
+/*
+    Does nothing until user presses a button. Checks agianst that index of the given sequence.
+    If correct, moves on.
+    If incorrect, plays "Wrong input"
+*/
+uint8_t checkUserInput(int currentIndex, uint8_t sequence [ MAXLEN ]) {
+    for (int i = 0; i < currentIndex; i++) {
+        
+    }
+}
+
+/*
+    [Sets up the mcu]
+    Calls setup function
+
+    [Declares global variables]
+    Sets space in memory for the array
+    Declares the index number
+    
+*/
+int main() {
+    setup();
+    uint8_t currentSeq [ MAXLEN ];
+    uint8_t index = 0;
+	while (1) {
+        currentSeq[index] = random() % 4;
+        //uint8_t randomValue = (0b00010000 << random() % 4);
+
+        playSequence(index, currentSeq);
+
+        checkUserInput(index, currentSeq);
+
+/*
+
+        uint8_t randomValue = 0b00010000;
+        //Turns on one of the LEDs at random
+        PORTA = randomValue;
+        delay(100000);
+        PORTA = 0x00;     
+        uint8_t comparison = readButton() == randomValue;   
+
+        if (comparison) {
+            for (int i = 0; i < 10; i++) {
+                PORTA = 0b00100000;
+                delay(10000);
+                PORTA = 0x00;
+                delay(10000);
+            }
+        } else {
+            for (int i = 0; i < 10; i++) {
+                PORTA = 0b01000000;
+                delay(10000);
+                PORTA = 0x00;
+                delay(10000);
+            }
+        }
+		//intake Port B's values and mask it with 0b0111_1000, then left shift 1 times.
+		//PORTA = readButton();
+		
+		delay(100000);
+
+        */
+        
+	}
+}
+
+
