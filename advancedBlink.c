@@ -10,7 +10,7 @@
 
 #include <stdbool.h>
 
-#define MAXLEN 25
+#define MAXLEN 5
 
 
 //returns the value of the buttons (In PORTB, left justified)
@@ -134,7 +134,34 @@ void playSequence(int currentIndex, uint8_t sequence [ MAXLEN ]) {
     If incorrect, plays "Wrong input"
 */
 uint8_t checkUserInput(int currentIndex, uint8_t sequence [ MAXLEN ]) {
+    // Declare a boolean variable that checks to see if the items are the same
+    // If they are not the same, then something has changed. Move on
+    // If they are the same, keep checking.
+
+    // Check to see if the input matches the current index in sequence. If it does, keep going.
+    // If it does not match, then something is wrong. Exit with status 1.
+
+    // When the entire sequence up until the current index is exhausted, then return 0.
+    uint8_t inp = 0xF0;
+
     for (int i = 0; i < currentIndex; i++) {
+        //Wait for button release
+        while (inp != 0x00) {
+            inp = readButton();
+        }
+        while (inp == 0x00) {
+            //keep updating newButt until they are different
+            inp = readButton();
+        }
+        //Once we escape the polling loop, then something has changed.
+
+        for (int j = 0; j < 5; j++) {
+            //Blink to acknowlege input
+            PORTA = 0b10010000;
+            delay(10000);
+            PORTA = 0x00;
+            delay(10000);
+        }
         
     }
 }
@@ -165,7 +192,7 @@ int main() {
                 playing = false;
             } else {
                 playSequence(index, currentSeq);
-                //checkUserInput(index, currentSeq);
+                checkUserInput(index, currentSeq);
 
                 index++;
             }
