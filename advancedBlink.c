@@ -8,6 +8,8 @@
 #include "random.h"
 #endif
 
+#include <stdbool.h>
+
 #define MAXLEN 25
 
 
@@ -104,18 +106,31 @@ int setup() {
 */
 
 void playSequence(int currentIndex, uint8_t sequence [ MAXLEN ]) {
+
+    // for (int i = 0; i < 10; i++) {
+    //             PORTA = sequence[0];
+    //             delay(100000);
+    //             PORTA = sequence[1];
+    //             delay(100000);
+    // }
+
+
     for (int i = 0; i < currentIndex; i++) {
-        uint8_t currentA = PORTA;
+        //uint8_t currentA = PORTA;
+        uint8_t currentA = sequence[i];
         currentA &= 0b00001111;
         currentA |= 0b00010000 << sequence[i];
         PORTA = currentA;
-        delay(10000);
+        delay(105000);
+        PORTA = 0x00;
+        delay(105000);
     }
 }
 
 /*
+    Loads the array from the very beginning, then proceeds with the checking algorithm.
     Does nothing until user presses a button. Checks agianst that index of the given sequence.
-    If correct, moves on.
+    If correct, moves on. 
     If incorrect, plays "Wrong input"
 */
 uint8_t checkUserInput(int currentIndex, uint8_t sequence [ MAXLEN ]) {
@@ -136,46 +151,77 @@ uint8_t checkUserInput(int currentIndex, uint8_t sequence [ MAXLEN ]) {
 int main() {
     setup();
     uint8_t currentSeq [ MAXLEN ];
+    bool playing = true;
+    bool failed = false;
+    // currentSeq[0] = 0b10000000;
+    // currentSeq[1] = 0b01000000;
     uint8_t index = 0;
 	while (1) {
-        currentSeq[index] = random() % 4;
-        //uint8_t randomValue = (0b00010000 << random() % 4);
+        if (playing) {
+            currentSeq[index] = random() % 4;
 
-        playSequence(index, currentSeq);
+            //If the user exceeds the max length, they have won the game
+            if (index >= MAXLEN) {
+                playing = false;
+            } else {
+                playSequence(index, currentSeq);
+                //checkUserInput(index, currentSeq);
 
-        checkUserInput(index, currentSeq);
+                index++;
+            }
+            
+            delay(10000);
 
-/*
+            PORTA = 0xF0;
+            delay(100000);
+            PORTA = 0x00;
+            delay(100000);
 
-        uint8_t randomValue = 0b00010000;
-        //Turns on one of the LEDs at random
-        PORTA = randomValue;
-        delay(100000);
-        PORTA = 0x00;     
-        uint8_t comparison = readButton() == randomValue;   
-
-        if (comparison) {
-            for (int i = 0; i < 10; i++) {
+        //If the user has stopped playing, check to see if they've failed or they've passed the game
+        } else {
+            if (failed) {
+                PORTA = 0b01000000;
+                delay(10000);
+                PORTA = 0x00;
+                delay(10000);
+            } else {
                 PORTA = 0b00100000;
                 delay(10000);
                 PORTA = 0x00;
                 delay(10000);
             }
-        } else {
-            for (int i = 0; i < 10; i++) {
-                PORTA = 0b01000000;
-                delay(10000);
-                PORTA = 0x00;
-                delay(10000);
-            }
         }
+        
+
+
+        //uint8_t randomValue = (0b00010000 << random() % 4);
+
+        // uint8_t randomValue = 0b00010000;
+        // //Turns on one of the LEDs at random
+        // PORTA = randomValue;
+        // delay(100000);
+        // PORTA = 0x00;     
+        // uint8_t comparison = readButton() == randomValue;   
+
+        // if (comparison) {
+        //     for (int i = 0; i < 10; i++) {
+        //         PORTA = 0b00100000;
+        //         delay(10000);
+        //         PORTA = 0x00;
+        //         delay(10000);
+        //     }
+        // } else {
+        //     for (int i = 0; i < 10; i++) {
+        //         PORTA = 0b01000000;
+        //         delay(10000);
+        //         PORTA = 0x00;
+        //         delay(10000);
+        //     }
+        // }
 		//intake Port B's values and mask it with 0b0111_1000, then left shift 1 times.
 		//PORTA = readButton();
 		
-		delay(100000);
-
-        */
-        
+		
 	}
 }
 
