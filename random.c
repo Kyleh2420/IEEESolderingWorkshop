@@ -1,29 +1,16 @@
-#include <avr/eeprom.h>
 #include "random.h"
+#include <avr/io.h>
 
-static uint16_t random_number = 0;
+static uint16_t random_seed;
 
-static uint16_t
-lfsr16_next(uint16_t n)
-{
-
-    return (n >> 0x01U) ^ (-(n & 0x01U) & 0xB400U);    
+void random_init(uint16_t seed) {
+    random_seed = seed;
 }
 
-void
-random_init(uint16_t seed)
-{
-#ifdef USE_RANDOM_SEED
-    random_number = lfsr16_next(eeprom_read_word((uint16_t *)RANDOM_SEED_ADDRESS) ^ seed);
-    eeprom_write_word((uint16_t *)0, random_number);
-#else
-    random_number = seed;
-#endif    /* !USE_RANDOM_SEED */
-}
-
-uint16_t
-random(void)
-{
-
-    return (random_number = lfsr16_next(random_number)); 
+uint8_t random(void) {
+    // Pseudo-random number generation using a simple linear congruential generator (LCG)
+    random_seed = (random_seed * 32719 + 3) % 32749;
+    
+    // Limit the range to 0-3 (modulo 4)
+    return random_seed % 4;
 }

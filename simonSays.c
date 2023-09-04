@@ -9,7 +9,7 @@
 
 #include <stdbool.h>
 
-#define MAXLEN 5
+#define MAXLEN 25
 
 
 //returns the value of the buttons (In PORTB, left justified)
@@ -27,29 +27,29 @@ void delay(volatile long time) {
 }
 
 void ADC_init() {
-    //Sets the refernce voltage to AVCC
-    ADMUX |= (1 << REFS0);
-    //Enable ADC and set prescaler to 128
-    ADCSRA |= (1 << ADEN) |
-                (1 << ADPS2) |
-                (1 << ADPS1) | 
-                (1 << ADPS0);
+    // Set the reference voltage to AVCC (external voltage reference)
+    ADMUX = (1 << REFS0);
+
+    // Enable ADC and set prescaler to 64 for a reasonable ADC clock speed
+    // Adjust the prescaler value as needed based on your specific requirements
+    ADCSRA = (1 << ADEN) | (1 << ADPS2) | (1 << ADPS1);
+
+    // Disable digital input buffer for PA1 (ADC channel 1)
+    DIDR0 |= (1 << ADC1D);
 }
 
 // Function to read analog value from ADC
-uint16_t ADC_read(uint8_t channel) {
-    // Clear the channel selection bits
-    ADMUX &= 0xF0;
-    // Set the channel selection bits based on the given channel
-    ADMUX |= (channel & 0x0F);
-    
+uint16_t ADC_read() {
+    // Set the channel to ADC1 (PA1)
+    ADMUX = (1 << REFS0) | (1 << MUX0);
+
     // Start ADC conversion
     ADCSRA |= (1 << ADSC);
-    
+
     // Wait until the conversion is complete
     while (ADCSRA & (1 << ADSC));
-    
-    // Return the ADC value
+
+    // Return the ADC value (16-bit)
     return ADC;
 }
 
@@ -77,7 +77,7 @@ int setup() {
     //Set analog read in (To seed the random function) as input
     DDRA &= ~(1 << PA1);
     ADC_init();
-    random_init(ADC_read(1));
+    random_init(ADC_read());
     PORTA = 0xF0;
     delay(100000);
     PORTA = 0x00;
@@ -171,8 +171,8 @@ int main() {
 
     while (1) {
         if (playing) {
-            //currentSeq[index] = random() % 4;
-            currentSeq[index] = index % 4;
+            currentSeq[index] = random() % 4;
+            //currentSeq[index] = index % 4;
             //If the user exceeds the max length, they have won the game
             if (index >= MAXLEN) {
                 playing = false;

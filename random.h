@@ -1,11 +1,9 @@
-#ifndef _RANDOM_H_
-#define    _RANDOM_H_
+#ifndef RANDOM_H
+#define RANDOM_H
 
-#ifdef    USE_RANDOM_SEED
-#define    RANDOM_SEED_ADDRESS    0x00
-#endif    /* !USE_RANDOM_SEED */
+#include <stdint.h>
 
 void random_init(uint16_t seed);
-uint16_t random(void);
+uint8_t random(void);
 
-#endif    /* !_RANDOM_H_ */
+#endif // RANDOM_H
